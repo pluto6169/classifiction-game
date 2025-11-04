@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="ar">
+
+<head>
+    <meta charset="UTF-8">
+    <title>لعبة السلم والتصنيف - Dewey Decimal</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            text-align: center;
+            background: #0f0f23;
+            background-image:
+                radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3), transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(72, 52, 212, 0.3), transparent 50%);
+            min-height: 100vh;
+            padding: 20px;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        h1 {
+            color: #e0e7ff;
+            text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+            margin-bottom: 10px;
+            font-size: 36px;
+        }
+
+        .game-info {
+            background: rgba(30, 30, 60, 0.6);
+            backdrop-filter: blur(20px);
+            padding: 15px 30px;
+            border-radius: 15px;
+            display: inline-block;
+            color: #e0e7ff;
+            font-size: 18px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .ladder-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: rgba(30, 30, 60, 0.4);
+            border-radius: 20px;
+            border: 2px solid rgba(139, 92, 246, 0.3);
+            position: relative;
+        }
+
+        .ladder {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 20px;
+            background: linear-gradient(145deg, #1e1e3f, #2a2a4a);
+            border-radius: 12px;
+            border: 2px solid rgba(139, 92, 246, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .step-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #8b5cf6;
+            min-width: 50px;
+        }
+
+        .step-bar {
+            flex: 1;
+            height: 8px;
+            background: rgba(139, 92, 246, 0.2);
+            border-radius: 10px;
+            margin: 0 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.5), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                left: -100%;
+            }
+
+            100% {
+                left: 100%;
+            }
+        }
+
+        .step-icon {
+            font-size: 24px;
+        }
+
+        .player {
+            position: absolute;
+            font-size: 40px;
+            transition: all 0.5s ease;
+            filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8));
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .step.current {
+            background: linear-gradient(145deg, #7c3aed, #8b5cf6);
+            border-color: #a78bfa;
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.5);
+            transform: scale(1.05);
+        }
+
+        .step.win {
+            background: linear-gradient(145deg, #059669, #10b981);
+            border-color: #34d399;
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.5);
+            animation: winPulse 1s infinite;
+        }
+
+        @keyframes winPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.08);
+            }
+        }
+
+        .question-box {
+            background: linear-gradient(145deg, #1e1e3f, #2a2a4a);
+            padding: 30px;
+            border-radius: 20px;
+            margin: 20px auto;
+            max-width: 700px;
+            border: 2px solid rgba(139, 92, 246, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .question-text {
+            font-size: 24px;
+            color: #e0e7ff;
+            margin-bottom: 25px;
+            font-weight: bold;
+        }
+
+        .answers {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .answer-btn {
+            padding: 18px;
+            background: linear-gradient(145deg, #1e1e3f, #2a2a4a);
+            color: #e0e7ff;
+            border: 2px solid rgba(139, 92, 246, 0.3);
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            font-family: Tahoma;
+        }
+
+        .answer-btn:hover {
+            background: linear-gradient(145deg, #7c3aed, #8b5cf6);
+            border-color: #a78bfa;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .answer-btn.correct {
+            background: linear-gradient(145deg, #059669, #10b981);
+            border-color: #34d399;
+            animation: correctPulse 0.6s;
+        }
+
+        .answer-btn.wrong {
+            background: linear-gradient(145deg, #dc2626, #ef4444);
+            border-color: #f87171;
+            animation: shake 0.5s;
+        }
+
+        @keyframes correctPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-10px);
+            }
+
+            75% {
+                transform: translateX(10px);
+            }
+        }
+
+        .answer-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: linear-gradient(145deg, #1e1e3f, #2a2a4a);
+            padding: 50px;
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+            border: 2px solid rgba(139, 92, 246, 0.3);
+            animation: modalPop 0.4s ease;
+        }
+
+        @keyframes modalPop {
+            0% {
+                transform: scale(0.7);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .modal-content h2 {
+            color: #10b981;
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 30px rgba(16, 185, 129, 0.5);
+        }
+
+        .modal-content p {
+            font-size: 20px;
+            color: #c7d2fe;
+            margin: 10px 0;
+        }
+
+        .reset-btn {
+            margin-top: 30px;
+            padding: 15px 40px;
+            background: linear-gradient(145deg, #7c3aed, #8b5cf6);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .reset-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(139, 92, 246, 0.6);
+        }
+
+        .feedback {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            display: none;
+        }
+
+        .feedback.show {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .feedback.correct {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 2px solid #34d399;
+        }
+
+        .feedback.wrong {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 2px solid #f87171;
+        }
+
+        /* إضافة للـ CSS الموجود */
+
+        /* Media Queries للموبايل */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 24px;
+                margin-bottom: 8px;
+            }
+
+            .game-info {
+                font-size: 14px;
+                padding: 10px 15px;
+                margin-bottom: 15px;
+            }
+
+            .ladder-container {
+                padding: 15px 10px;
+                margin: 15px auto;
+            }
+
+            .ladder {
+                gap: 10px;
+            }
+
+            .step {
+                padding: 10px 12px;
+                flex-wrap: nowrap;
+            }
+
+            .step-number {
+                font-size: 18px;
+                min-width: 35px;
+            }
+
+            .step-bar {
+                margin: 0 10px;
+                height: 6px;
+            }
+
+            .step-icon {
+                font-size: 20px;
+            }
+
+            .player {
+                font-size: 28px;
+            }
+
+            .question-box {
+                padding: 20px 15px;
+                margin: 15px 10px;
+            }
+
+            .question-text {
+                font-size: 18px;
+                margin-bottom: 20px;
+                line-height: 1.5;
+            }
+
+            .answers {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .answer-btn {
+                padding: 15px;
+                font-size: 15px;
+                min-height: 55px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+            }
+
+            .answer-btn:hover {
+                transform: none;
+            }
+
+            .answer-btn:active {
+                transform: scale(0.95);
+            }
+
+            .feedback {
+                font-size: 15px;
+                padding: 12px;
+                margin-top: 15px;
+                line-height: 1.4;
+            }
+
+            .reset-btn {
+                padding: 12px 30px;
+                font-size: 16px;
+                margin-top: 20px;
+            }
+
+            .reset-btn:hover {
+                transform: none;
+            }
+
+            .reset-btn:active {
+                transform: scale(0.95);
+            }
+
+            .modal-content {
+                padding: 30px 20px;
+                margin: 20px;
+                max-width: 90%;
+            }
+
+            .modal-content h2 {
+                font-size: 32px;
+                margin-bottom: 15px;
+            }
+
+            .modal-content p {
+                font-size: 16px;
+                margin: 8px 0;
+            }
+
+            /* تحسين الأنيميشن على الموبايل */
+            .step.current {
+                transform: scale(1.02);
+            }
+
+            @keyframes bounce {
+
+                0%,
+                100% {
+                    transform: translateY(0);
+                }
+
+                50% {
+                    transform: translateY(-5px);
+                }
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 20px;
+            }
+
+            .game-info {
+                font-size: 12px;
+                padding: 8px 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .ladder-container {
+                padding: 10px 5px;
+            }
+
+            .step {
+                padding: 8px 10px;
+            }
+
+            .step-number {
+                font-size: 16px;
+                min-width: 30px;
+            }
+
+            .step-icon {
+                font-size: 18px;
+            }
+
+            .player {
+                font-size: 24px;
+            }
+
+            .question-box {
+                padding: 15px 10px;
+            }
+
+            .question-text {
+                font-size: 16px;
+                margin-bottom: 15px;
+            }
+
+            .answer-btn {
+                padding: 12px;
+                font-size: 14px;
+                min-height: 50px;
+            }
+
+            .feedback {
+                font-size: 14px;
+                padding: 10px;
+            }
+
+            .modal-content {
+                padding: 25px 15px;
+            }
+
+            .modal-content h2 {
+                font-size: 28px;
+            }
+
+            .modal-content p {
+                font-size: 15px;
+            }
+
+            .reset-btn {
+                padding: 10px 25px;
+                font-size: 15px;
+            }
+        }
+
+        /* تحسينات عامة للتاتش */
+        @media (hover: none) and (pointer: coarse) {
+            .answer-btn:hover {
+                background: linear-gradient(145deg, #1e1e3f, #2a2a4a);
+                transform: none;
+                box-shadow: none;
+            }
+
+            .answer-btn:active {
+                background: linear-gradient(145deg, #7c3aed, #8b5cf6);
+                transform: scale(0.95);
+            }
+
+            .reset-btn:hover {
+                background: linear-gradient(145deg, #7c3aed, #8b5cf6);
+                transform: none;
+                box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
+            }
+
+            .reset-btn:active {
+                transform: scale(0.95);
+            }
+
+            .item:hover {
+                transform: none;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            }
+        }
+
+        /* منع التكبير عند الضغط على الإنبوت */
+        input,
+        select,
+        textarea,
+        button {
+            font-size: 16px !important;
+        }
+
+        /* تحسين scroll على الموبايل */
+        body {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* إخفاء scrollbar على الموبايل */
+        .ladder-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .ladder-container {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🪜 لعبة السلم والتصنيف</h1>
+    <div class="game-info">
+        📊 المستوى: <span id="level">1</span> / 10 |
+        ✅ صحيحة: <span id="correct">0</span> |
+        ❌ خاطئة: <span id="wrong">0</span>
+    </div>
+
+    <div class="ladder-container">
+        <div class="ladder" id="ladder"></div>
+    </div>
+
+    <div class="question-box" id="questionBox">
+        <div class="question-text" id="questionText"></div>
+        <div class="answers" id="answersContainer"></div>
+        <div class="feedback" id="feedback"></div>
+    </div>
+
+    <button class="reset-btn" onclick="startGame()">🔄 لعبة جديدة</button>
+
+    <div class="modal" id="winModal">
+        <div class="modal-content">
+            <h2>🎉 مبروك!</h2>
+            <p>وصلت لقمة السلم!</p>
+            <p>✅ إجابات صحيحة: <span id="finalCorrect"></span></p>
+            <p>❌ أخطاء: <span id="finalWrong"></span></p>
+            <p>🎯 الدقة: <span id="accuracy"></span>%</p>
+            <button class="reset-btn" onclick="closeModal()">العب مرة أخرى</button>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            { q: "إلى أي مجال ينتمي رقم 510؟", correct: "الرياضيات", options: ["الرياضيات", "الفلسفة", "التاريخ", "الأدب"] },
+            { q: "ما هو تصنيف رقم 200؟", correct: "الديانات", options: ["الديانات", "العلوم", "الفنون", "التكنولوجيا"] },
+            { q: "رقم 800 يشير إلى؟", correct: "الأدب", options: ["الأدب", "التاريخ", "الجغرافيا", "الفلسفة"] },
+            { q: "أين نصنف رقم 300؟", correct: "العلوم الاجتماعية", options: ["العلوم الاجتماعية", "العلوم الطبيعية", "التكنولوجيا", "الفنون"] },
+            { q: "رقم 600 ينتمي إلى؟", correct: "التكنولوجيا والعلوم التطبيقية", options: ["التكنولوجيا والعلوم التطبيقية", "الفلسفة", "الأدب", "التاريخ"] },
+            { q: "ما تصنيف رقم 900؟", correct: "التاريخ والجغرافيا", options: ["التاريخ والجغرافيا", "الديانات", "الفنون", "العلوم"] },
+            { q: "رقم 700 يشير إلى؟", correct: "الفنون", options: ["الفنون", "الرياضيات", "الفلسفة", "العلوم الاجتماعية"] },
+            { q: "أين نصنف رقم 100؟", correct: "الفلسفة وعلم النفس", options: ["الفلسفة وعلم النفس", "الأدب", "التكنولوجيا", "الديانات"] },
+            { q: "رقم 500 ينتمي إلى؟", correct: "العلوم الطبيعية", options: ["العلوم الطبيعية", "العلوم الاجتماعية", "الفنون", "التاريخ"] },
+            { q: "ما هو تصنيف رقم 400؟", correct: "اللغات", options: ["اللغات", "الرياضيات", "التكنولوجيا", "الجغرافيا"] },
+            { q: "رقم 000 يشير إلى؟", correct: "المعارف العامة والمعلوماتية", options: ["المعارف العامة والمعلوماتية", "الفلسفة", "الديانات", "الأدب"] },
+            { q: "أين نصنف الكتب عن الطب؟", correct: "610", options: ["610", "510", "710", "810"] },
+            { q: "كتاب عن الشعر العربي يصنف تحت؟", correct: "811", options: ["811", "711", "911", "511"] },
+            { q: "رقم 320 يشير إلى؟", correct: "العلوم السياسية", options: ["العلوم السياسية", "علم النفس", "الاقتصاد", "التربية"] },
+            { q: "أين نصنف كتب الطبخ؟", correct: "640", options: ["640", "540", "740", "840"] }
+        ];
+
+        let currentLevel = 1;
+        let correctAnswers = 0;
+        let wrongAnswers = 0;
+        let currentQuestion = null;
+        let usedQuestions = [];
+
+        function createLadder() {
+            const ladder = document.getElementById('ladder');
+            ladder.innerHTML = '';
+
+            for (let i = 1; i <= 10; i++) {
+                const step = document.createElement('div');
+                step.className = 'step';
+                step.id = `step-${i}`;
+
+                if (i === 10) {
+                    step.classList.add('win');
+                }
+
+                step.innerHTML = `
+                    <span class="step-number">${i}</span>
+                    <div class="step-bar"></div>
+                    <span class="step-icon">${i === 10 ? '🏆' : i === 1 ? '🚀' : '📚'}</span>
+                `;
+
+                ladder.appendChild(step);
+            }
+
+            updatePlayerPosition();
+        }
+
+        function updatePlayerPosition() {
+            document.querySelectorAll('.player').forEach(p => p.remove());
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('current'));
+
+            const currentStep = document.getElementById(`step-${currentLevel}`);
+            if (currentStep) {
+                currentStep.classList.add('current');
+                const player = document.createElement('div');
+                player.className = 'player';
+                player.innerHTML = '🎓';
+                currentStep.appendChild(player);
+            }
+        }
+
+        function getRandomQuestion() {
+            let availableQuestions = questions.filter(q => !usedQuestions.includes(q));
+
+            if (availableQuestions.length === 0) {
+                usedQuestions = [];
+                availableQuestions = questions;
+            }
+
+            const randomQ = availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
+            usedQuestions.push(randomQ);
+            return randomQ;
+        }
+
+        function showQuestion() {
+            currentQuestion = getRandomQuestion();
+            document.getElementById('questionText').innerText = currentQuestion.q;
+
+            const answersContainer = document.getElementById('answersContainer');
+            answersContainer.innerHTML = '';
+
+            const shuffledOptions = [...currentQuestion.options].sort(() => Math.random() - 0.5);
+
+            shuffledOptions.forEach(option => {
+                const btn = document.createElement('button');
+                btn.className = 'answer-btn';
+                btn.innerText = option;
+                btn.onclick = () => checkAnswer(option, btn);
+                answersContainer.appendChild(btn);
+            });
+
+            document.getElementById('feedback').classList.remove('show', 'correct', 'wrong');
+        }
+
+        function checkAnswer(answer, btn) {
+            const allButtons = document.querySelectorAll('.answer-btn');
+            allButtons.forEach(b => b.disabled = true);
+
+            const feedback = document.getElementById('feedback');
+
+            if (answer === currentQuestion.correct) {
+                btn.classList.add('correct');
+                feedback.className = 'feedback show correct';
+                feedback.innerHTML = '✅ إجابة صحيحة! اطلع خطوة للأعلى 🪜';
+                correctAnswers++;
+
+                setTimeout(() => {
+                    if (currentLevel < 10) {
+                        currentLevel++;
+                        updatePlayerPosition();
+                        document.getElementById('level').innerText = currentLevel;
+                        document.getElementById('correct').innerText = correctAnswers;
+                        showQuestion();
+                    } else {
+                        showWinModal();
+                    }
+                }, 1500);
+
+            } else {
+                btn.classList.add('wrong');
+                feedback.className = 'feedback show wrong';
+                feedback.innerHTML = `❌ خطأ! الإجابة الصحيحة: ${currentQuestion.correct}<br>انزل خطوة للأسفل 📉`;
+                wrongAnswers++;
+
+                allButtons.forEach(b => {
+                    if (b.innerText === currentQuestion.correct) {
+                        b.classList.add('correct');
+                    }
+                });
+
+                setTimeout(() => {
+                    if (currentLevel > 1) {
+                        currentLevel--;
+                        updatePlayerPosition();
+                        document.getElementById('level').innerText = currentLevel;
+                    }
+                    document.getElementById('wrong').innerText = wrongAnswers;
+                    showQuestion();
+                }, 2500);
+            }
+        }
+
+        function showWinModal() {
+            const total = correctAnswers + wrongAnswers;
+            const accuracy = total > 0 ? Math.round((correctAnswers / total) * 100) : 0;
+
+            document.getElementById('finalCorrect').innerText = correctAnswers;
+            document.getElementById('finalWrong').innerText = wrongAnswers;
+            document.getElementById('accuracy').innerText = accuracy;
+            document.getElementById('winModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('winModal').style.display = 'none';
+            startGame();
+        }
+
+        function startGame() {
+            currentLevel = 1;
+            correctAnswers = 0;
+            wrongAnswers = 0;
+            usedQuestions = [];
+
+            document.getElementById('level').innerText = currentLevel;
+            document.getElementById('correct').innerText = correctAnswers;
+            document.getElementById('wrong').innerText = wrongAnswers;
+
+            createLadder();
+            showQuestion();
+        }
+
+        startGame();
+    </script>
+</body>
+
+</html>
